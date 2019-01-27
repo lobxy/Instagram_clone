@@ -5,31 +5,22 @@ public class UserRegister {
     public UserRegister() {
     }
 
-    String device_token, fullname, uid, password, username, imageUrl;
+    String device_token, fullName, uid, userName, profileUrl;
 
-    public UserRegister(String device_token, String fullname, String uid, String password, String username, String imageUrl) {
+    public UserRegister(String device_token, String fullName, String uid, String userName, String profileUrl) {
         this.device_token = device_token;
-        this.fullname = fullname;
+        this.fullName = fullName;
         this.uid = uid;
-        this.password = password;
-        this.username = username;
-        this.imageUrl = imageUrl;
+        this.userName = userName;
+        this.profileUrl = profileUrl;
     }
 
-    public String getPassword() {
-        return password;
+    public String getProfileUrl() {
+        return profileUrl;
     }
 
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getImageUrl() {
-        return imageUrl;
-    }
-
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
+    public void setProfileUrl(String profileUrl) {
+        this.profileUrl = profileUrl;
     }
 
     public String getDevice_token() {
@@ -40,12 +31,12 @@ public class UserRegister {
         this.device_token = device_token;
     }
 
-    public String getFullname() {
-        return fullname;
+    public String getFullName() {
+        return fullName;
     }
 
-    public void setFullname(String fullname) {
-        this.fullname = fullname;
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
     }
 
     public String getUid() {
@@ -56,19 +47,11 @@ public class UserRegister {
         this.uid = uid;
     }
 
-    public String getGender() {
-        return password;
+    public String getUserName() {
+        return userName;
     }
 
-    public void setGender(String gender) {
-        this.password = gender;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
+    public void setUserName(String userName) {
+        this.userName = userName;
     }
 }

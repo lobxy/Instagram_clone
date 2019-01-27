@@ -38,7 +38,7 @@ public class Register extends AppCompatActivity {
     ImageView addImage;
     FirebaseAuth auth;
     DatabaseReference reference;
-    EditText et_fullName, et_password, et_userName;
+    EditText et_fullName, et_userName;
     ProgressDialog dialog;
 
     private StorageReference mStorageRef;
@@ -46,7 +46,7 @@ public class Register extends AppCompatActivity {
     public static final int IMAGE_CAPTURE_CODE = 0;
     public static final int GALLERY_IMPORT_CODE = 1;
 
-    String uid, email, device_token, fullName, contact, password, userName, imageDownloadUrl;
+    String uid, email, device_token, fullName, userName, profileUrl;
 
 
     @Override
@@ -64,7 +64,6 @@ public class Register extends AppCompatActivity {
         dialog.setCancelable(false);
 
         addImage = findViewById(R.id.reg_imageView);
-        et_password = findViewById(R.id.reg_password);
         et_fullName = findViewById(R.id.reg_name);
         et_userName = findViewById(R.id.reg_username);
 
@@ -121,14 +120,12 @@ public class Register extends AppCompatActivity {
 
         Uri imageUri;
         if (requestCode == GALLERY_IMPORT_CODE && resultCode == RESULT_OK && data != null && data.getData() != null) {
-            dialog.show();
             imageUri = data.getData();
             addImage.setImageURI(imageUri);
             uploadImage(imageUri);
 
 
         } else if (requestCode == IMAGE_CAPTURE_CODE && resultCode == RESULT_OK && data.getExtras() != null) {
-
             imageUri = data.getData();
             addImage.setImageURI(imageUri);
             uploadImage(imageUri);
@@ -142,26 +139,30 @@ public class Register extends AppCompatActivity {
         //assign the user id as the name for the profile pic.
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
 
-        StorageReference filepath = mStorageRef.child("Profile_Pictures").child(user.getUid());
+        final StorageReference filepath = mStorageRef.child("Profile_Pictures").child(user.getUid());
         //maybe check for uid being null
 
         filepath.putFile(imageUri).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
             @Override
             public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
                 Log.i(TAG, "onSuccess: Upload success");
+                filepath.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                    @Override
+                    public void onSuccess(Uri uri) {
+                        profileUrl = uri.toString();
+                        Log.i(TAG, "download url: " + profileUrl);
+                    }
+                }).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.i(TAG, "onFailure: Download url error: " + e.getLocalizedMessage());
+                    }
+                });
             }
         }).addOnFailureListener(new OnFailureListener() {
             @Override
             public void onFailure(@NonNull Exception e) {
-                showAlert("Error",e.getLocalizedMessage());
-            }
-        });
-
-        filepath.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
-            @Override
-            public void onSuccess(Uri uri) {
-                imageDownloadUrl = uri.toString();
-                Log.i(TAG, "download url: " + imageDownloadUrl);
+                showAlert("Upload Image Error: ", e.getLocalizedMessage());
             }
         });
 
@@ -170,27 +171,24 @@ public class Register extends AppCompatActivity {
 
 
     private void validate() {
+        userName = et_userName.getText().toString().trim();
         fullName = et_fullName.getText().toString().trim();
-        password = et_password.getText().toString().trim();
-        contact = et_password.getText().toString().trim();
 
-        if (TextUtils.isEmpty(fullName)) {
+        if (TextUtils.isEmpty(userName)) {
+            et_userName.requestFocus();
+            et_userName.setError("Field is empty");
+        } else if (TextUtils.isEmpty(fullName)) {
             et_fullName.requestFocus();
             et_fullName.setError("Field is empty");
-        } else if (TextUtils.isEmpty(contact)) {
-            et_password.requestFocus();
-            et_password.setError("Field is empty");
-        } else if (contact.length() < 10) {
-            et_password.requestFocus();
-            et_password.setError("Invalid contact number");
         } else {
             submitData();
         }
+
     }
 
 
     private void submitData() {
-        if (imageDownloadUrl == null) {
+        if (profileUrl == null) {
             Toast.makeText(this, "Profile pic not set yet.", Toast.LENGTH_LONG).show();
         } else {
             email = auth.getCurrentUser().getEmail();
@@ -202,8 +200,7 @@ public class Register extends AppCompatActivity {
                     device_token = getTokenResult.getToken();
                     uid = auth.getCurrentUser().getUid();
 
-                    //String device_token, String fullName, String uid, String gender, String username,String imageUrl
-                    UserRegister userRegister = new UserRegister(device_token, fullName, uid, password, userName, imageDownloadUrl);
+                    UserRegister userRegister = new UserRegister(device_token, fullName, uid, userName, profileUrl);
 
                     reference.child(uid).setValue(userRegister).addOnCompleteListener(new OnCompleteListener<Void>() {
                         @Override
@@ -229,6 +226,8 @@ public class Register extends AppCompatActivity {
             }).addOnFailureListener(new OnFailureListener() {
                 @Override
                 public void onFailure(@NonNull Exception e) {
+                    dialog.dismiss();
+
                     Log.i(TAG, "onFailure:Token Error: " + e.getLocalizedMessage());
                     Toast.makeText(Register.this, "Error: " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
 

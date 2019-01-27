@@ -20,7 +20,6 @@ public class Splash extends AppCompatActivity {
     FirebaseAuth auth = FirebaseAuth.getInstance();
     ProgressDialog dialog;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -39,7 +38,7 @@ public class Splash extends AppCompatActivity {
 
             if (user != null) {
                 dialog.dismiss();
-                Log.i(TAG, "onStart: user  found");
+                Log.i(TAG, "onStart: user found");
                 startActivity(new Intent(this, Home.class));
                 finish();
             } else {
