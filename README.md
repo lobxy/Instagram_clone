@@ -1,2 +1,3 @@
-# Instagram_clone
+# Photoblog_App
 An instagram like android app with some mods.
+-inProgress
