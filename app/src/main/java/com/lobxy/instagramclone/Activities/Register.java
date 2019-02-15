@@ -38,7 +38,7 @@ public class Register extends AppCompatActivity {
     ImageView addImage;
     FirebaseAuth auth;
     DatabaseReference reference;
-    EditText et_fullName, et_userName;
+    EditText et_fullName, et_userName, et_description;
     ProgressDialog dialog;
 
     private StorageReference mStorageRef;
@@ -46,7 +46,7 @@ public class Register extends AppCompatActivity {
     public static final int IMAGE_CAPTURE_CODE = 0;
     public static final int GALLERY_IMPORT_CODE = 1;
 
-    String uid, email, device_token, fullName, userName, profileUrl;
+    String uid, email, device_token, fullName, userName, profileUrl, description;
 
 
     @Override
@@ -59,13 +59,14 @@ public class Register extends AppCompatActivity {
         mStorageRef = FirebaseStorage.getInstance().getReference();
 
         dialog = new ProgressDialog(this);
-        dialog.setMessage("Loading...\nDon't close the application!");
+        dialog.setMessage("Loading...");
         dialog.setInverseBackgroundForced(true);
         dialog.setCancelable(false);
 
         addImage = findViewById(R.id.reg_imageView);
         et_fullName = findViewById(R.id.reg_name);
         et_userName = findViewById(R.id.reg_username);
+        et_description = findViewById(R.id.reg_desc);
 
 
         Button submit = findViewById(R.id.reg_submit);
@@ -173,6 +174,7 @@ public class Register extends AppCompatActivity {
     private void validate() {
         userName = et_userName.getText().toString().trim();
         fullName = et_fullName.getText().toString().trim();
+        description = et_description.getText().toString().trim();
 
         if (TextUtils.isEmpty(userName)) {
             et_userName.requestFocus();
@@ -180,6 +182,9 @@ public class Register extends AppCompatActivity {
         } else if (TextUtils.isEmpty(fullName)) {
             et_fullName.requestFocus();
             et_fullName.setError("Field is empty");
+        } else if (TextUtils.isEmpty(description)) {
+            et_description.requestFocus();
+            et_description.setError("Field is empty");
         } else {
             submitData();
         }
@@ -189,7 +194,7 @@ public class Register extends AppCompatActivity {
 
     private void submitData() {
         if (profileUrl == null) {
-            Toast.makeText(this, "Profile pic not set yet.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Pic not set yet.", Toast.LENGTH_LONG).show();
         } else {
             email = auth.getCurrentUser().getEmail();
 
@@ -200,7 +205,7 @@ public class Register extends AppCompatActivity {
                     device_token = getTokenResult.getToken();
                     uid = auth.getCurrentUser().getUid();
 
-                    UserRegister userRegister = new UserRegister(device_token, fullName, uid, userName, profileUrl);
+                    UserRegister userRegister = new UserRegister(device_token, fullName, uid, userName, profileUrl, description);
 
                     reference.child(uid).setValue(userRegister).addOnCompleteListener(new OnCompleteListener<Void>() {
                         @Override

@@ -37,6 +37,7 @@ import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.lobxy.instagramclone.Model.AddPost;
 import com.lobxy.instagramclone.R;
+import com.lobxy.instagramclone.Utils.ShowPopUps;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -47,25 +48,30 @@ import java.util.Locale;
 public class AddPostActivity extends AppCompatActivity {
     private static final String TAG = "Add post";
 
-    ImageView postImageView;
-    EditText et_caption;
+    private ImageView image_addImage;
+    private EditText et_caption;
 
-    FirebaseAuth auth;
-    DatabaseReference reference;
-    StorageReference storageReference;
+    private FirebaseAuth mAuth;
+    private DatabaseReference mReference;
+    private StorageReference mStorageReference;
 
-    String imageCaption, imageDownloadUrl, postTime, postId, time;
+    private String mImageCaption, mImageDownloadUrl, mPostId, mTime, mUid;
 
     public static final int IMAGE_CAPTURE_CODE = 0;
     public static final int GALLERY_IMPORT_CODE = 1;
 
-    Uri imageUri;
-    ProgressDialog dialog;
+    private ProgressDialog dialog;
 
+    Uri imageURI = null;
+
+    private ShowPopUps popUps;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        popUps = new ShowPopUps(this);
+
         setContentView(R.layout.activity_add_post);
 
         dialog = new ProgressDialog(this);
@@ -83,110 +89,48 @@ public class AddPostActivity extends AppCompatActivity {
             }
         });
 
-        auth = FirebaseAuth.getInstance();
-        reference = FirebaseDatabase.getInstance().getReference("Posts");
-        storageReference = FirebaseStorage.getInstance().getReference("Posts");
+        mAuth = FirebaseAuth.getInstance();
+        mReference = FirebaseDatabase.getInstance().getReference("Posts");
+        mStorageReference = FirebaseStorage.getInstance().getReference("Posts");
 
-        postId = reference.push().getKey();
+        mPostId = mReference.push().getKey();
 
         et_caption = findViewById(R.id.ap_caption);
-        postImageView = findViewById(R.id.ap_addImage);
+        image_addImage = findViewById(R.id.ap_addImage);
 
         Button submitPostButton = findViewById(R.id.ap_postButton);
 
         submitPostButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                imageCaption = et_caption.getText().toString().trim();
-                if (imageCaption.isEmpty()) {
+
+                mImageCaption = et_caption.getText().toString().trim();
+
+                if (mImageCaption.isEmpty()) {
                     et_caption.requestFocus();
                     et_caption.setError("Field is empty");
-                } else {
-                    if (connectivity()) {
-                        submitPost();
-                    } else {
-                        showAlert("Alert", "Not connected to internet.");
-                    }
+                    return;
                 }
+
+                if (connectivity() && imageURI != null) uploadImage(imageURI);
+
+                else popUps.showAlertDialog("Alert", "Not connected to internet.");
+
             }
         });
 
-        postImageView.setOnClickListener(new View.OnClickListener() {
+        image_addImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 importImage();
             }
         });
 
-
-    }
-
-    private void submitPost() {
-
-        if (imageDownloadUrl == null) {
-            Toast.makeText(AddPostActivity.this, "Image not added yet.", Toast.LENGTH_LONG).show();
-        } else {
-            dialog.show();
-            //Get current time and date.
-            String currentDate = new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(new Date());
-            String currentTime = DateFormat.getTimeInstance().format(Calendar.getInstance().getTime());
-            time = currentDate + " @ " + currentTime;
-
-            final String uid = auth.getCurrentUser().getUid();
-
-            //Get user data.
-            DatabaseReference userDataReference = FirebaseDatabase.getInstance().getReference("Users").child(uid);
-
-            userDataReference.addListenerForSingleValueEvent(new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-
-                    String userProfilePictureURL, userFullName;
-
-                    if (dataSnapshot.exists()) {
-                        userProfilePictureURL = dataSnapshot.child("profileUrl").getValue(String.class);
-                        userFullName = dataSnapshot.child("fullName").getValue(String.class);
-
-                        //String time, String profileUrl, String caption, String postId, String fullName, String profilePicImageUrl, String uid
-                        AddPost addPost = new AddPost(time, imageDownloadUrl, imageCaption, postId, userFullName, userProfilePictureURL, uid);
-                        reference.child(uid).child(postId).setValue(addPost).addOnCompleteListener(new OnCompleteListener<Void>() {
-                            @Override
-                            public void onComplete(@NonNull Task<Void> task) {
-
-                                dialog.dismiss();
-
-                                if (task.isSuccessful()) {
-                                    Toast.makeText(AddPostActivity.this, "Post added", Toast.LENGTH_SHORT).show();
-                                    startActivity(new Intent(AddPostActivity.this, Home.class));
-                                    finish();
-                                } else {
-                                    showAlert("Error", task.getException().getLocalizedMessage());
-                                }
-                            }
-                        });
-
-                    } else {
-                        dialog.dismiss();
-
-                        //data doesn't exists. Get the data from the user again.
-                        startActivity(new Intent(AddPostActivity.this, Register.class));
-                        finish();
-                    }
-                }
-
-                @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) {
-                    dialog.dismiss();
-                    showAlert("Error", databaseError.getMessage());
-                }
-            });
-
-        }
-
-
     }
 
     private void importImage() {
+
+        //show alert box to choose import from either camera or gallery.
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Alert")
@@ -214,33 +158,16 @@ public class AddPostActivity extends AppCompatActivity {
 
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        Uri imageUri;
-        if (requestCode == GALLERY_IMPORT_CODE && resultCode == RESULT_OK && data != null && data.getData() != null) {
-            imageUri = data.getData();
-            postImageView.setImageURI(imageUri);
-            uploadImage(imageUri);
-
-
-        } else if (requestCode == IMAGE_CAPTURE_CODE && resultCode == RESULT_OK && data.getExtras() != null) {
-            imageUri = data.getData();
-            postImageView.setImageURI(imageUri);
-            uploadImage(imageUri);
-        }
-
-    }
-
     private void uploadImage(Uri imageUri) {
         dialog.show();
+
         //assign the user id as the name for the profile pic.
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
 
-        final StorageReference filepath = storageReference.child(user.getUid()).child(postId);
-        //maybe check for uid being null
-        Log.i(TAG, "uploadImage: postId: " + postId);
+        final StorageReference filepath = mStorageReference.child(user.getUid()).child(mPostId);
+
+        //Todo:maybe check for uid being null
+        Log.i(TAG, "uploadImage: mPostId: " + mPostId);
 
         filepath.putFile(imageUri).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
             @Override
@@ -251,16 +178,17 @@ public class AddPostActivity extends AppCompatActivity {
                     @Override
                     public void onSuccess(Uri uri) {
                         dialog.dismiss();
-                        imageDownloadUrl = uri.toString();
-                        Log.i(TAG, "download url: " + imageDownloadUrl);
-                        Toast.makeText(AddPostActivity.this, "Image Added", Toast.LENGTH_SHORT).show();
+                        mImageDownloadUrl = uri.toString();
+                        Log.i(TAG, "Image Added " + mImageDownloadUrl);
+
+                        getUserData();
 
                     }
                 }).addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
                         dialog.dismiss();
-                        Log.i(TAG, "Download url error: " + e.getLocalizedMessage());
+                        popUps.showAlertDialog("Error", e.getLocalizedMessage());
                     }
                 });
 
@@ -269,27 +197,97 @@ public class AddPostActivity extends AppCompatActivity {
             @Override
             public void onFailure(@NonNull Exception e) {
                 dialog.dismiss();
-                showAlert("Error: ", e.getLocalizedMessage());
+                popUps.showAlertDialog("Error: ", e.getLocalizedMessage());
             }
         });
+
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        Uri imageUri;
+        if (requestCode == GALLERY_IMPORT_CODE && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            imageUri = data.getData();
+            image_addImage.setImageURI(imageUri);
+            imageURI = imageUri;
+
+        } else if (requestCode == IMAGE_CAPTURE_CODE && resultCode == RESULT_OK && data.getExtras() != null) {
+            imageUri = data.getData();
+            image_addImage.setImageURI(imageUri);
+            imageURI = imageUri;
+        }
+
+    }
+
+    private void getUserData() {
+
+        if (mImageDownloadUrl == null) {
+            Toast.makeText(AddPostActivity.this, "Image not ready.", Toast.LENGTH_LONG).show();
+        } else {
+            dialog.show();
+
+            //Get current mTime and date.
+            String currentDate = new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(new Date());
+            String currentTime = DateFormat.getTimeInstance().format(Calendar.getInstance().getTime());
+            mTime = currentDate + " @ " + currentTime;
+
+            mUid = mAuth.getCurrentUser().getUid();
+
+            //Get user data.
+            DatabaseReference userDataReference = FirebaseDatabase.getInstance().getReference("Users").child(mUid);
+
+            userDataReference.addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                    String userProfilePictureURL, userFullName;
+
+                    if (dataSnapshot.exists()) {
+                        userProfilePictureURL = dataSnapshot.child("profileUrl").getValue(String.class);
+                        userFullName = dataSnapshot.child("fullName").getValue(String.class);
+
+                        dialog.dismiss();
+                        submitPostData(userProfilePictureURL, userFullName);
+
+                    } else {
+                        dialog.dismiss();
+                        //data doesn't exists. Get the data from the user again.
+
+                        startActivity(new Intent(AddPostActivity.this, Register.class));
+                        finish();
+                    }
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+                    dialog.dismiss();
+                    popUps.showAlertDialog("Error", databaseError.getMessage());
+                }
+            });
+
+        }
 
 
     }
 
+    private void submitPostData(String userProfilePictureURL, String userFullName) {
+        dialog.show();
+        AddPost addPost = new AddPost(mTime, mImageDownloadUrl, mImageCaption, mPostId, userFullName, userProfilePictureURL, mUid);
 
-    private void showAlert(String title, String message) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(title)
-                .setMessage(message)
-                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        dialogInterface.dismiss();
-                    }
-                });
-        AlertDialog alertDialog = builder.create();
-        alertDialog.show();
+        mReference.child(mPostId).setValue(addPost).addOnCompleteListener(new OnCompleteListener<Void>() {
+            @Override
+            public void onComplete(@NonNull Task<Void> task) {
 
+                dialog.dismiss();
+                if (task.isSuccessful()) {
+                    Toast.makeText(AddPostActivity.this, "Post added", Toast.LENGTH_SHORT).show();
+                    startActivity(new Intent(AddPostActivity.this, Home.class));
+                    finish();
+                } else popUps.showAlertDialog("Error", task.getException().getMessage());
+
+            }
+        });
     }
 
     public boolean connectivity() {
@@ -298,6 +296,5 @@ public class AddPostActivity extends AppCompatActivity {
 
         return networkInfo != null && networkInfo.isConnected();
     }
-
 
 }

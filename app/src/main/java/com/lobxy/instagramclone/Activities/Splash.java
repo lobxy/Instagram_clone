@@ -3,8 +3,6 @@ package com.lobxy.instagramclone.Activities;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -13,6 +11,7 @@ import android.util.Log;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.lobxy.instagramclone.R;
+import com.lobxy.instagramclone.Utils.Connectivity;
 
 public class Splash extends AppCompatActivity {
 
@@ -32,7 +31,9 @@ public class Splash extends AppCompatActivity {
         dialog.setMessage("Loading...");
         dialog.setCancelable(false);
 
-        if (connectivity()) {
+        Connectivity connectivity = new Connectivity(this);
+
+        if (connectivity.check()) {
             dialog.show();
             FirebaseUser user = auth.getCurrentUser();
 
@@ -65,12 +66,5 @@ public class Splash extends AppCompatActivity {
             alertDialog.show();
         }
         super.onStart();
-    }
-
-
-    private boolean connectivity() {
-        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
-        return networkInfo != null && networkInfo.isConnected();
     }
 }

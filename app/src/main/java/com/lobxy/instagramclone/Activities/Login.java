@@ -1,11 +1,7 @@
 package com.lobxy.instagramclone.Activities;
 
-import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -22,6 +18,8 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.lobxy.instagramclone.R;
+import com.lobxy.instagramclone.Utils.Connectivity;
+import com.lobxy.instagramclone.Utils.ShowPopUps;
 
 public class Login extends AppCompatActivity {
 
@@ -36,11 +34,14 @@ public class Login extends AppCompatActivity {
 
     Button mode_login, mode_register;
 
+    ShowPopUps popUps;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
+        popUps = new ShowPopUps(this);
 
         dialog = new ProgressDialog(this);
         dialog.setMessage("Please wait...");
@@ -104,8 +105,9 @@ public class Login extends AppCompatActivity {
             et_password.setError("Password is less than 6 characters");
 
         } else {
+            Connectivity connectivity = new Connectivity(this);
 
-            if (connectivity()) {
+            if (connectivity.check()) {
                 if (signUpMode) {
                     //register the user.
                     dialog.show();
@@ -120,7 +122,7 @@ public class Login extends AppCompatActivity {
                             } else {
                                 dialog.dismiss();
                                 Log.i(TAG, "Login Unsuccessful Error: " + task.getException().getLocalizedMessage());
-                                showAlert("Error", task.getException().getLocalizedMessage());
+                                popUps.showAlertDialog("Error", task.getException().getLocalizedMessage());
 
                             }
                         }
@@ -140,8 +142,7 @@ public class Login extends AppCompatActivity {
                                 finish();
                             } else {
                                 dialog.dismiss();
-                                Log.i(TAG, "onComplete: Login Unsuccessful \n Error: " + task.getException().getLocalizedMessage());
-                                showAlert("Error", task.getException().getLocalizedMessage());
+                                popUps.showAlertDialog("Error", task.getException().getLocalizedMessage());
                             }
                         }
                     });
@@ -155,24 +156,4 @@ public class Login extends AppCompatActivity {
     }
 
 
-    private boolean connectivity() {
-        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
-        return networkInfo != null && networkInfo.isConnected();
-    }
-
-    private void showAlert(String title, String message) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(title)
-                .setMessage(message)
-                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        dialogInterface.dismiss();
-                    }
-                });
-        AlertDialog alertDialog = builder.create();
-        alertDialog.show();
-
-    }
 }

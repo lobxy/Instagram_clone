@@ -7,6 +7,8 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 
 import com.google.firebase.auth.FirebaseAuth;
@@ -19,7 +21,8 @@ import com.lobxy.instagramclone.R;
 
 public class Home extends AppCompatActivity {
 
-    FirebaseAuth auth;
+    private FirebaseAuth mAuth;
+
     private String TAG = "Home";
 
     @Override
@@ -39,27 +42,50 @@ public class Home extends AppCompatActivity {
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_home, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        if (id == R.id.profile) {
+            Intent intent = new Intent(this, Profile.class);
+            startActivity(intent);
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
     protected void onStart() {
         super.onStart();
-        final ProgressDialog progress = new ProgressDialog(this);
-        progress.setMessage("Loading...");
 
-        progress.show();
-        auth = FirebaseAuth.getInstance();
-        DatabaseReference reference = FirebaseDatabase.getInstance().getReference("Users").child(auth.getCurrentUser().getUid());
+        final ProgressDialog dialog = new ProgressDialog(this);
+        dialog.setMessage("Loading...");
+
+        dialog.show();
+
+        mAuth = FirebaseAuth.getInstance();
+        DatabaseReference reference = FirebaseDatabase.getInstance().getReference("Users").child(mAuth.getCurrentUser().getUid());
 
         reference.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                progress.dismiss();
+                dialog.dismiss();
                 if (!dataSnapshot.exists()) {
                     startActivity(new Intent(Home.this, Register.class));
+                    finish();
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
-                progress.dismiss();
+                dialog.dismiss();
                 Log.i(TAG, "Error: " + databaseError.getMessage());
             }
         });
