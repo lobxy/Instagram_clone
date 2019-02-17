@@ -1,13 +1,13 @@
 package com.lobxy.instagramclone.Model;
 
-public class AddPost {
+public class Post {
 
-    public AddPost() {
+    public Post() {
     }
 
-    String time, imageDownloadUrl, caption, postId, fullName, profilePicImageUrl, uid;
+    private String time, imageDownloadUrl, caption, postId, fullName, profilePicImageUrl, uid;
 
-    public AddPost(String time, String imageDownloadUrl, String caption, String postId, String fullName, String profilePicImageUrl, String uid) {
+    public Post(String time, String imageDownloadUrl, String caption, String postId, String fullName, String profilePicImageUrl, String uid) {
         this.time = time;
         this.imageDownloadUrl = imageDownloadUrl;
         this.caption = caption;

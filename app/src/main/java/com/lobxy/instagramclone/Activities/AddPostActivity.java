@@ -19,7 +19,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -35,7 +34,7 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
-import com.lobxy.instagramclone.Model.AddPost;
+import com.lobxy.instagramclone.Model.Post;
 import com.lobxy.instagramclone.R;
 import com.lobxy.instagramclone.Utils.ShowPopUps;
 
@@ -48,6 +47,9 @@ import java.util.Locale;
 public class AddPostActivity extends AppCompatActivity {
     private static final String TAG = "Add post";
 
+    public static final int IMAGE_CAPTURE_CODE = 0;
+    public static final int GALLERY_IMPORT_CODE = 1;
+
     private ImageView image_addImage;
     private EditText et_caption;
 
@@ -57,20 +59,17 @@ public class AddPostActivity extends AppCompatActivity {
 
     private String mImageCaption, mImageDownloadUrl, mPostId, mTime, mUid;
 
-    public static final int IMAGE_CAPTURE_CODE = 0;
-    public static final int GALLERY_IMPORT_CODE = 1;
-
     private ProgressDialog dialog;
 
     Uri imageURI = null;
 
-    private ShowPopUps popUps;
+    private ShowPopUps showPopUps;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        popUps = new ShowPopUps(this);
+        showPopUps = new ShowPopUps(this);
 
         setContentView(R.layout.activity_add_post);
 
@@ -114,7 +113,7 @@ public class AddPostActivity extends AppCompatActivity {
 
                 if (connectivity() && imageURI != null) uploadImage(imageURI);
 
-                else popUps.showAlertDialog("Alert", "Not connected to internet.");
+                else showPopUps.showAlertDialog("Alert", "Not connected to internet.");
 
             }
         });
@@ -166,7 +165,6 @@ public class AddPostActivity extends AppCompatActivity {
 
         final StorageReference filepath = mStorageReference.child(user.getUid()).child(mPostId);
 
-        //Todo:maybe check for uid being null
         Log.i(TAG, "uploadImage: mPostId: " + mPostId);
 
         filepath.putFile(imageUri).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
@@ -188,7 +186,7 @@ public class AddPostActivity extends AppCompatActivity {
                     @Override
                     public void onFailure(@NonNull Exception e) {
                         dialog.dismiss();
-                        popUps.showAlertDialog("Error", e.getLocalizedMessage());
+                        showPopUps.showAlertDialog("Error", e.getLocalizedMessage());
                     }
                 });
 
@@ -197,7 +195,7 @@ public class AddPostActivity extends AppCompatActivity {
             @Override
             public void onFailure(@NonNull Exception e) {
                 dialog.dismiss();
-                popUps.showAlertDialog("Error: ", e.getLocalizedMessage());
+                showPopUps.showAlertDialog("Error: ", e.getLocalizedMessage());
             }
         });
 
@@ -224,7 +222,7 @@ public class AddPostActivity extends AppCompatActivity {
     private void getUserData() {
 
         if (mImageDownloadUrl == null) {
-            Toast.makeText(AddPostActivity.this, "Image not ready.", Toast.LENGTH_LONG).show();
+            showPopUps.showToast("Image not ready.");
         } else {
             dialog.show();
 
@@ -253,7 +251,7 @@ public class AddPostActivity extends AppCompatActivity {
                     } else {
                         dialog.dismiss();
                         //data doesn't exists. Get the data from the user again.
-
+                        showPopUps.showToast("User data not found");
                         startActivity(new Intent(AddPostActivity.this, Register.class));
                         finish();
                     }
@@ -262,7 +260,7 @@ public class AddPostActivity extends AppCompatActivity {
                 @Override
                 public void onCancelled(@NonNull DatabaseError databaseError) {
                     dialog.dismiss();
-                    popUps.showAlertDialog("Error", databaseError.getMessage());
+                    showPopUps.showAlertDialog("Error", databaseError.getMessage());
                 }
             });
 
@@ -273,18 +271,19 @@ public class AddPostActivity extends AppCompatActivity {
 
     private void submitPostData(String userProfilePictureURL, String userFullName) {
         dialog.show();
-        AddPost addPost = new AddPost(mTime, mImageDownloadUrl, mImageCaption, mPostId, userFullName, userProfilePictureURL, mUid);
+        Post post = new Post(mTime, mImageDownloadUrl, mImageCaption, mPostId, userFullName, userProfilePictureURL, mUid);
 
-        mReference.child(mPostId).setValue(addPost).addOnCompleteListener(new OnCompleteListener<Void>() {
+        mReference.child(mPostId).setValue(post).addOnCompleteListener(new OnCompleteListener<Void>() {
             @Override
             public void onComplete(@NonNull Task<Void> task) {
 
                 dialog.dismiss();
                 if (task.isSuccessful()) {
-                    Toast.makeText(AddPostActivity.this, "Post added", Toast.LENGTH_SHORT).show();
+                    showPopUps.showToast("Post Added");
+
                     startActivity(new Intent(AddPostActivity.this, Home.class));
                     finish();
-                } else popUps.showAlertDialog("Error", task.getException().getMessage());
+                } else showPopUps.showAlertDialog("Error", task.getException().getMessage());
 
             }
         });
