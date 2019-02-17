@@ -1,3 +1,4 @@
 # Photoblog_App
-An instagram like android app with some mods.
+An app to share photographic posts with friends and world.
+Uses Firebase.
 -inProgress
